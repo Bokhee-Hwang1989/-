@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>금촌가정교회 - 천일국 스마트 출석부</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;700;900&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        nature: { base: '#f0f4f0', primary: '#2d5a27', secondary: '#78a55a', accent: '#f59e0b', soft: '#e8f5e9' }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #f0f4f0;
+            background-image: linear-gradient(rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.8)), 
+                              url('https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&q=80&w=2560');
+            background-size: cover;
+            background-attachment: fixed;
+            background-position: center;
+            min-height: 100vh;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .glass-header { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+        .member-card { transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); background: rgba(255, 255, 255, 0.7); }
+        .present { background: white; border-color: #f59e0b; color: #92400e; box-shadow: 0 10px 25px -5px rgba(245, 158, 11, 0.2); transform: translateY(-3px); }
+        .floating-msg { position: absolute; pointer-events: none; animation: floatUp 0.8s ease-out forwards; font-weight: 800; color: #f59e0b; z-index: 100; font-size: 1.4rem; text-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        @keyframes floatUp { 0% { opacity: 0; transform: translateY(0) scale(0.5); } 30% { opacity: 1; transform: translateY(-30px) scale(1.2); } 100% { opacity: 0; transform: translateY(-60px) scale(1); } }
+    </style>
+</head>
+<body class="text-slate-800 pb-10">
+
+    <nav class="sticky top-0 z-50 glass-header border-b border-amber-100 px-8 py-4">
+        <div class="max-w-[1600px] mx-auto flex flex-wrap items-center justify-between gap-6">
+            <div class="flex items-center gap-6">
+                <div>
+                    <h1 class="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+                        <span class="text-nature-primary"><i class="fas fa-sun"></i></span> 금촌가정교회
+                    </h1>
+                    <p id="live-clock" class="text-nature-primary font-black text-xl tracking-tighter mt-1">00:00:00</p>
+                </div>
+                <div class="h-10 w-px bg-slate-200 hidden md:block"></div>
+                <div class="hidden md:block">
+                    <p id="today-date" class="text-slate-500 font-semibold text-sm"></p>
+                    <p id="welcome-verse" class="text-slate-400 text-xs italic font-bold">"참사랑은 주고 잊어버리는 것입니다."</p>
+                </div>
+            </div>
+
+            <div class="flex-1 max-w-md">
+                <div class="relative group">
+                    <input type="text" id="self-member-name" placeholder="새식구님은 성함을 입력해 주세요" class="w-full bg-white/70 border-2 border-amber-100 px-6 py-4 rounded-2xl shadow-sm focus:border-nature-primary outline-none font-bold text-slate-700 transition-all">
+                    <button onclick="selfRegister()" class="absolute right-2 top-2 bottom-2 bg-nature-primary text-white px-6 rounded-xl font-bold shadow-md hover:bg-nature-secondary transition-colors text-sm">참석 보고</button>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-4">
+                <div class="bg-white/80 px-6 py-2 rounded-2xl border shadow-sm text-sm">
+                    <span class="text-slate-400 font-bold">정성 식구 <span id="present-count" class="text-nature-primary text-xl ml-1">0</span>명</span>
+                </div>
+                <button onclick="toggleAdminView()" id="admin-btn" class="w-12 h-12 flex items-center justify-center bg-white rounded-2xl text-slate-300 border shadow-sm"><i class="fas fa-cog text-xl"></i></button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-[1600px] mx-auto p-8 relative">
+        <div id="admin-panel" class="hidden mb-10 bg-amber-50/90 border border-amber-100 rounded-3xl p-6 shadow-inner flex justify-between items-center">
+            <span class="text-amber-800 font-bold"><i class="fas fa-user-shield mr-2"></i>천일국 관리자 전용</span>
+            <button onclick="resetAttendance()" class="bg-white text-red-600 px-6 py-2 rounded-xl font-bold text-sm border border-red-100">성일 데이터 초기화</button>
+        </div>
+        <div id="member-list" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-5"></div>
+    </div>
+
+    <script>
+        // 🚨 새로 발급받으신 URL이 적용되었습니다.
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwOBs4VVymuuNGQlj7otfHxu5yZnwuKQzqR3wClvzyntcPVp_xuOPHfWpU-mAlei5Rv/exec";
+        const ADMIN_PW = "1234";
+        let isAdmin = false;
+
+        const greetings = ["사랑합니다! ❤️", "참사랑으로 환영합니다! ✨", "효정의 빛! 🌿", "억만세! 🙌", "천운 대길! 🕊️"];
+        const parentWords = ["\"참사랑은 주고 잊어버리는 것입니다.\"", "\"하나님은 인류의 부모이십니다.\"", "\"평화는 나로부터 시작됩니다.\"", "\"우리는 하늘부모님 아래 인류 한 가족입니다.\"", "\"참된 효정의 마음으로 정성을 들입시다.\""];
+
+        const initialMembers = ["황복희", "김가윤", "황효미", "황효원", "황효영", "황효이", "황효진", "간다메구미", "김대성", "김대영", "김창수", "이승남", "김재권", "한지우", "김익진", "마루야마 치요에", "김홍식", "김영덕", "후쿠하라 아야꼬", "김민성", "김민규", "나현선", "오오타 도모꼬", "나연우", "나연수", "나보인", "노현성", "전금림", "노은지", "노은준", "모리 레이꼬", "김주원", "김유경", "미야자또 유리꼬", "윤주영", "윤원이", "박영춘", "박양원", "이께가미 노리꼬", "박철성", "박철인", "신희동", "후지이 사찌꼬", "신현규", "신대규", "신명순", "신점순", "이기춘", "정순옥", "이학경", "이경현", "오오시로 레이꼬", "이호성", "이호준", "이수연", "이인영", "노모또 마사꼬", "이현욱", "나현수", "이창열", "이정호", "이하연", "이연우", "이은진", "이도훈", "이훈규", "장지영", "이대건", "이대명", "이영근", "이하연", "이무규", "이원정", "이영현", "이계원", "김정자", "이정호", "호시노 마사애", "이보경", "이보정", "우라 코우타", "이유진", "장문실", "장관식", "시미즈 마유미", "장보빈", "장주영", "코지마 마키", "장유나", "전우혁", "리리오 만타라", "전혜윤", "권혜림", "전효석", "전은솔", "권석", "이은서", "권관영", "권인애", "권석희", "고이데 케에꼬", "최유진", "최승한", "문지원", "최연우", "최원기", "김하순", "김이재", "최효영", "박경신", "아키", "최병상", "니시야마 치요", "최유리", "최유나", "최윤호", "김유진", "최예린", "최유찬", "홍성구", "아카기 유카", "홍정민", "홍용선", "정구황", "김양기", "곽성군", "최학준"];
+        
+        let familyMembers = JSON.parse(localStorage.getItem('church_members')) || initialMembers;
+        let attendanceData = JSON.parse(localStorage.getItem('church_attendance')) || {};
+
+        function init() {
+            updateClock(); setInterval(updateClock, 1000);
+            document.getElementById('welcome-verse').innerText = parentWords[Math.floor(Math.random() * parentWords.length)];
+            render();
+            document.getElementById('self-member-name').addEventListener('keypress', (e) => e.key === 'Enter' && selfRegister());
+        }
+
+        async function sendToGoogleSheet(name) {
+            try {
+                await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', cache: 'no-cache', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: name }) });
+            } catch (e) { console.error("Sync Error", e); }
+        }
+
+        function editMember(oldName, event) {
+            event.stopPropagation();
+            const newName = prompt(`'${oldName}' 식구님의 성함을 수정합니다.`, oldName);
+            if (newName && newName.trim() !== "" && newName !== oldName) {
+                const index = familyMembers.indexOf(oldName);
+                if (index !== -1) {
+                    familyMembers[index] = newName.trim();
+                    if (attendanceData[oldName]) { attendanceData[newName.trim()] = true; delete attendanceData[oldName]; }
+                    saveData(); render();
+                }
+            }
+        }
+
+        function selfRegister() {
+            const input = document.getElementById('self-member-name');
+            const name = input.value.trim();
+            if(!name) return;
+            if(!familyMembers.includes(name)) familyMembers.push(name);
+            handleAttendance(name, null);
+            input.value = '';
+        }
+
+        function handleAttendance(name, event) {
+            if(isAdmin) return;
+            const isAlreadyPresent = attendanceData[name];
+            attendanceData[name] = !isAlreadyPresent;
+            if (!isAlreadyPresent) { sendToGoogleSheet(name); playCheckSound(); if(event) showFloatingMsg(event); runConfetti(); }
+            saveData(); render();
+        }
+
+        function updateClock() { 
+            const now = new Date();
+            document.getElementById('today-date').innerText = now.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
+            document.getElementById('live-clock').innerText = now.toLocaleTimeString('ko-KR', { hour12: false }); 
+        }
+
+        function render() {
+            const listDiv = document.getElementById('member-list');
+            listDiv.innerHTML = '';
+            let count = 0;
+            [...new Set(familyMembers)].sort().forEach(name => {
+                const isPresent = attendanceData[name];
+                if(isPresent) count++;
+                const card = document.createElement('div');
+                card.className = `member-card cursor-pointer rounded-2xl p-6 text-center font-bold text-lg relative border-2 transition-all ${isPresent ? 'present' : 'border-white text-slate-300 hover:border-amber-100 shadow-sm'}`;
+                card.innerHTML = `
+                    ${isAdmin ? `
+                        <div class="absolute top-2 right-2 flex gap-1">
+                            <button onclick="editMember('${name}', event)" class="w-7 h-7 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center text-[10px]"><i class="fas fa-pen"></i></button>
+                            <button onclick="removeMember('${name}', event)" class="w-7 h-7 bg-red-100 text-red-500 rounded-full flex items-center justify-center text-[10px]"><i class="fas fa-trash"></i></button>
+                        </div>
+                    ` : ''}
+                    <p class="mt-1 font-black">${name}</p>
+                    ${isPresent ? '<div class="mt-1 text-nature-primary text-[10px] font-bold"><i class="fas fa-heart"></i> 정성 보고됨</div>' : ''}
+                `;
+                card.onclick = (e) => handleAttendance(name, e);
+                listDiv.appendChild(card);
+            });
+            document.getElementById('present-count').innerText = count;
+        }
+
+        function playCheckSound() { try { const audioCtx = new AudioContext(); const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain(); osc.connect(gain); gain.connect(audioCtx.destination); osc.frequency.setValueAtTime(880, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1); osc.start(); osc.stop(audioCtx.currentTime + 0.1); } catch(e){} }
+        function showFloatingMsg(e) { const text = greetings[Math.floor(Math.random() * greetings.length)]; const msg = document.createElement('div'); msg.className = 'floating-msg'; msg.innerText = text; msg.style.left = `${e.pageX - 50}px`; msg.style.top = `${e.pageY - 50}px`; document.body.appendChild(msg); setTimeout(() => msg.remove(), 800); }
+        function runConfetti() { confetti({ particleCount: 100, spread: 70, origin: { y: 0.8 }, colors: ['#2d5a27', '#f59e0b', '#ffffff'] }); }
+        function toggleAdminView() { if(!isAdmin) { if(prompt("관리자 PW:") === ADMIN_PW) { isAdmin = true; document.getElementById('admin-panel').classList.remove('hidden'); } } else { isAdmin = false; document.getElementById('admin-panel').classList.add('hidden'); } render(); }
+        function removeMember(name, event) { event.stopPropagation(); if(confirm(`${name} 삭제?`)) { familyMembers = familyMembers.filter(m => m !== name); delete attendanceData[name]; saveData(); render(); } }
+        function resetAttendance() { if(confirm("초기화?")) { attendanceData = {}; saveData(); render(); } }
+        function saveData() { localStorage.setItem('church_members', JSON.stringify(familyMembers)); localStorage.setItem('church_attendance', JSON.stringify(attendanceData)); }
+        init();
+    </script>
+</body>
+</html>
