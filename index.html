@@ -58,20 +58,19 @@
                 <button onclick="resetData()" class="text-red-500 font-bold text-sm underline">데이터 초기화</button>
             </div>
             <div class="bg-white p-5 rounded-2xl border border-amber-200 mb-6 shadow-sm">
-                <h3 class="font-bold text-slate-700 mb-3">신규 등록 식구 (수동 추가됨)</h3>
-                <div id="new-members-list" class="flex flex-wrap gap-2 text-sm min-h-[40px]"></div>
+                <h3 class="font-bold text-slate-700 mb-3"><i class="fas fa-user-plus mr-2 text-red-500"></i> 신규 등록 식구 승인 대기</h3>
+                <div id="new-members-list" class="flex flex-wrap gap-3 text-sm min-h-[40px]"></div>
+                <p class="text-xs text-slate-400 mt-4">* [승인] 버튼을 누르면 NEW 배지가 사라지고 일반 식구 명단으로 편입됩니다.</p>
             </div>
         </div>
         <div id="member-list" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-5"></div>
     </div>
 
     <script>
-        // 구글 앱스 스크립트 연결 주소
         const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwOBs4VVymuuNGQlj7otfHxu5yZnwuKQzqR3wClvzyntcPVp_xuOPHfWpU-mAlei5Rv/exec";
         const ADMIN_PW = "1234";
         let isAdmin = false;
 
-        // 122명 전체 명단
         const initialFullList = ["권관영", "권석", "권석희", "권인애", "권혜림", "간다메구미", "강민수", "고이데 케에꼬", "곽성군", "김가윤", "김대성", "김대영", "김민규", "김민성", "김양기", "김영덕", "김유경", "김유진", "김익진", "김이재", "김재권", "김정자", "김주원", "김창수", "김하순", "김홍식", "나보인", "나연수", "나연우", "나현선", "나현수", "노모또 마사꼬", "노은준", "노은지", "노현성", "니시야마 치요", "리리오 만타라", "마루야마 치요에", "모리 레이꼬", "문지원", "미야자또 유리꼬", "박경신", "박양원", "박영춘", "박철성", "박철인", "신대규", "신명순", "신점순", "신현규", "신희동", "시미즈 마유미", "아카기 유카", "아키", "오오시로 레이꼬", "오오타 도모꼬", "우라 코우타", "윤원이", "윤주영", "이계원", "이경현", "이기춘", "이께가미 노리꼬", "이대건", "이대명", "이도훈", "이무규", "이보경", "이보정", "이수연", "이승남", "이연우", "이영근", "이영현", "이은서", "이은진", "이인영", "이정호", "이창열", "이학경", "이하연", "이현욱", "이호성", "이호준", "이훈규", "이유진", "장관식", "장문실", "장보빈", "장유나", "장주영", "장지영", "전금림", "전은솔", "전우혁", "전혜윤", "전효석", "정구황", "정다은", "정순옥", "조현우", "최병상", "최승한", "최예린", "최연우", "최원기", "최유나", "최유리", "최유진", "최유찬", "최윤호", "최학준", "최효영", "코지마 마키", "후쿠하라 아야꼬", "후지이 사찌꼬", "한지우", "호시노 마사애", "홍성구", "홍용선", "홍정민", "황복희", "황효미", "황효영", "황효원", "황효이", "황효진"];
 
         let familyMembers = JSON.parse(localStorage.getItem('church_members')) || initialFullList;
@@ -84,7 +83,6 @@
             document.getElementById('self-member-name').addEventListener('keypress', (e) => e.key === 'Enter' && selfRegister());
         }
 
-        // 구글 시트로 데이터 전송
         async function sendToGoogleSheet(name) {
             if (!SCRIPT_URL) return;
             try {
@@ -119,11 +117,17 @@
             if(isAdmin) return;
             const isMarkingPresent = !attendanceData[name];
             attendanceData[name] = isMarkingPresent;
-            
             if (isMarkingPresent) {
-                sendToGoogleSheet(name); // 체크 시 실시간 전송
+                sendToGoogleSheet(name);
                 runConfetti();
             }
+            saveData();
+            render();
+        }
+
+        // 아이디어 B: 신규 식구 일반 식구로 승인/전환
+        function approveMember(name) {
+            newMembers = newMembers.filter(m => m !== name);
             saveData();
             render();
         }
@@ -160,12 +164,16 @@
             const listDiv = document.getElementById('member-list');
             const newMListDiv = document.getElementById('new-members-list');
             listDiv.innerHTML = '';
-            newMListDiv.innerHTML = newMembers.length > 0 ? '' : '<span class="text-slate-400">없음</span>';
+            newMListDiv.innerHTML = newMembers.length > 0 ? '' : '<span class="text-slate-400">승인 대기 중인 신규 식구가 없습니다.</span>';
+            
             newMembers.forEach(m => {
-                const span = document.createElement('span');
-                span.className = "bg-red-50 text-red-600 px-3 py-1 rounded-full border border-red-100 font-bold";
-                span.innerText = m;
-                newMListDiv.appendChild(span);
+                const div = document.createElement('div');
+                div.className = "flex items-center gap-2 bg-red-50 border border-red-100 pl-3 pr-1 py-1 rounded-full";
+                div.innerHTML = `
+                    <span class="text-red-600 font-bold">${m}</span>
+                    <button onclick="approveMember('${m}')" class="bg-red-500 text-white px-2 py-1 rounded-full text-[10px] font-bold hover:bg-red-600">승인</button>
+                `;
+                newMListDiv.appendChild(div);
             });
 
             let count = 0;
