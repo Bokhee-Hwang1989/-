@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>금촌가정교회 - 스마트 출석부 (저장 버전)</title>
+    <title>금촌가정교회 - 스마트 출석부 (천일국 저장 버전)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
@@ -17,6 +17,7 @@
             background-size: cover;
             background-attachment: fixed;
             min-height: 100vh;
+            -webkit-tap-highlight-color: transparent;
         }
         .member-card { 
             transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); 
@@ -24,7 +25,7 @@
             display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 120px;
         }
         .present { background: white; border-color: #f59e0b; color: #92400e; transform: translateY(-3px); box-shadow: 0 10px 25px rgba(245,158,11,0.2); }
-        .new-badge { position: absolute; top: -5px; left: -5px; background: #ef4444; color: white; font-size: 10px; padding: 2px 6px; border-radius: 8px; font-weight: bold; }
+        .new-badge { position: absolute; top: -5px; left: -5px; background: #ef4444; color: white; font-size: 10px; padding: 2px 6px; border-radius: 8px; font-weight: bold; z-index: 5; }
     </style>
 </head>
 <body class="pb-10">
@@ -38,34 +39,33 @@
 
             <div class="flex-1 max-w-md">
                 <div class="relative">
-                    <input type="text" id="self-member-name" placeholder="새식구님 성함을 입력해 주세요" class="w-full border-2 border-amber-100 px-6 py-4 rounded-2xl outline-none focus:border-nature-primary font-bold">
-                    <button onclick="selfRegister()" class="absolute right-2 top-2 bottom-2 bg-nature-primary text-white px-6 rounded-xl font-bold">등록/참석</button>
+                    <input type="text" id="self-member-name" placeholder="새식구님 성함을 입력해 주세요" class="w-full border-2 border-amber-100 px-6 py-4 rounded-2xl outline-none focus:border-nature-primary font-bold shadow-sm">
+                    <button onclick="selfRegister()" class="absolute right-2 top-2 bottom-2 bg-nature-primary text-white px-6 rounded-xl font-bold hover:bg-green-700 transition-colors">등록/참석</button>
                 </div>
             </div>
 
             <div class="flex items-center gap-4">
                 <div class="bg-white/80 px-6 py-3 rounded-2xl border shadow-sm text-center">
-                    <span class="text-slate-400 font-bold text-xs">현재 참석</span>
+                    <span class="text-slate-400 font-bold text-xs">현재 정성 식구</span>
                     <span id="present-count" class="text-nature-primary text-2xl font-black block">0</span>
                 </div>
-                <button onclick="toggleAdminView()" class="w-14 h-14 bg-white rounded-2xl text-slate-300 border hover:text-nature-primary transition-all"><i class="fas fa-gear text-2xl"></i></button>
+                <button onclick="toggleAdminView()" class="w-14 h-14 bg-white rounded-2xl text-slate-300 border hover:text-nature-primary transition-all shadow-sm"><i class="fas fa-gear text-2xl"></i></button>
             </div>
         </div>
     </nav>
 
     <div class="max-w-[1600px] mx-auto p-8">
-        <div id="admin-panel" class="hidden mb-10 bg-amber-50/90 border border-amber-100 rounded-3xl p-6 shadow-md">
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-xl font-black text-amber-900"><i class="fas fa-user-shield mr-2"></i> 관리자 도구</h2>
-                <button onclick="resetData()" class="text-red-500 font-bold text-sm underline">전체 데이터 초기화(주의)</button>
+        <div id="admin-panel" class="hidden mb-10 bg-amber-50/95 border border-amber-100 rounded-3xl p-6 shadow-md">
+            <div class="flex justify-between items-center mb-6 border-b border-amber-200 pb-4">
+                <h2 class="text-xl font-black text-amber-900"><i class="fas fa-user-shield mr-2"></i> 천일국 관리자 도구</h2>
+                <button onclick="resetData()" class="text-red-500 font-bold text-sm underline hover:text-red-700 transition-colors">전체 데이터 초기화(주의)</button>
             </div>
             
-            <div class="bg-white p-5 rounded-2xl border border-amber-200 mb-6">
-                <h3 class="font-bold text-slate-700 mb-3"><i class="fas fa-user-plus mr-2 text-red-500"></i> 이번에 새로 등록된 식구</h3>
-                <div id="new-members-list" class="flex flex-wrap gap-2 text-sm">
-                    </div>
+            <div class="bg-white p-5 rounded-2xl border border-amber-200 mb-6 shadow-sm">
+                <h3 class="font-bold text-slate-700 mb-3"><i class="fas fa-user-plus mr-2 text-red-500"></i> 새로 등록된 식구 리스트</h3>
+                <div id="new-members-list" class="flex flex-wrap gap-2 text-sm min-h-[40px]"></div>
             </div>
-            <p class="text-xs text-amber-700 italic">* 관리자 모드에서는 카드 상단의 편집/삭제 버튼을 사용할 수 있습니다.</p>
+            <p class="text-xs text-amber-700 italic">* 관리자 모드에서는 카드 우측 상단의 편집(연필) 및 삭제(휴지통) 버튼을 사용할 수 있습니다.</p>
         </div>
 
         <div id="member-list" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-5"></div>
@@ -75,13 +75,13 @@
         const ADMIN_PW = "1234";
         let isAdmin = false;
 
-        // 1. 초기 식구 목록 (저장된 데이터가 없을 때만 사용)
-        const defaultMembers = ["황복희", "김가윤", "황효미", "간다메구미", "김대성", "마루야마 치요에", "후쿠하라 아야꼬", "오오타 도모꼬", "모리 레이꼬", "미야자또 유리꼬", "이께가미 노리꼬", "후지이 사찌꼬", "오오시로 레이꼬", "노모또 마사꼬", "호시노 마사애", "시미즈 마유미", "코지마 마키", "리리오 만타라", "고이데 케에꼬", "니시야마 치요", "아카기 유카"];
+        // 1. 122명의 정제된 전체 명단
+        const initialFullList = ["권관영", "권석", "권석희", "권인애", "권혜림", "간다메구미", "강민수", "고이데 케에꼬", "곽성군", "김가윤", "김대성", "김대영", "김민규", "김민성", "김양기", "김영덕", "김유경", "김유진", "김익진", "김이재", "김재권", "김정자", "김주원", "김창수", "김하순", "김홍식", "나보인", "나연수", "나연우", "나현선", "나현수", "노모또 마사꼬", "노은준", "노은지", "노현성", "니시야마 치요", "리리오 만타라", "마루야마 치요에", "모리 레이꼬", "문지원", "미야자또 유리꼬", "박경신", "박양원", "박영춘", "박철성", "박철인", "신대규", "신명순", "신점순", "신현규", "신희동", "시미즈 마유미", "아카기 유카", "아키", "오오시로 레이꼬", "오오타 도모꼬", "우라 코우타", "윤원이", "윤주영", "이계원", "이경현", "이기춘", "이께가미 노리꼬", "이대건", "이대명", "이도훈", "이무규", "이보경", "이보정", "이수연", "이승남", "이연우", "이영근", "이영현", "이은서", "이은진", "이인영", "이정호", "이창열", "이학경", "이하연", "이현욱", "이호성", "이호준", "이훈규", "이유진", "장관식", "장문실", "장보빈", "장유나", "장주영", "장지영", "전금림", "전은솔", "전우혁", "전혜윤", "전효석", "정구황", "정다은", "정순옥", "조현우", "최병상", "최승한", "최예린", "최연우", "최원기", "최유나", "최유리", "최유진", "최유찬", "최윤호", "최학준", "최효영", "코지마 마키", "후쿠하라 아야꼬", "후지이 사찌꼬", "한지우", "호시노 마사애", "홍성구", "홍용선", "홍정민", "황복희", "황효미", "황효영", "황효원", "황효이", "황효진"];
 
-        // 2. 로컬 스토리지에서 데이터 불러오기
-        let familyMembers = JSON.parse(localStorage.getItem('church_members')) || defaultMembers;
+        // 2. 데이터 불러오기 로직
+        let familyMembers = JSON.parse(localStorage.getItem('church_members')) || initialFullList;
         let attendanceData = JSON.parse(localStorage.getItem('church_attendance')) || {};
-        let newMembers = JSON.parse(localStorage.getItem('new_members')) || []; // 새식구 추적용
+        let newMembers = JSON.parse(localStorage.getItem('new_members')) || []; 
 
         function init() {
             updateClock(); setInterval(updateClock, 1000);
@@ -100,14 +100,13 @@
             const name = input.value.trim();
             if(!name) return;
 
-            // 기존 목록에 없으면 새식구로 등록
             if(!familyMembers.includes(name)) {
                 familyMembers.push(name);
-                newMembers.push(name); // 새식구 리스트에도 추가
+                newMembers.push(name); 
                 alert(`${name} 식구님, 환영합니다! 명단에 등록되었습니다.`);
             }
             
-            attendanceData[name] = true; // 바로 참석 처리
+            attendanceData[name] = true; 
             saveData();
             render();
             input.value = '';
@@ -129,11 +128,12 @@
                 const index = familyMembers.indexOf(oldName);
                 if (index !== -1) {
                     familyMembers[index] = newName.trim();
-                    // 참석 데이터 및 새식구 리스트도 함께 변경
-                    if (attendanceData[oldName]) { attendanceData[newName.trim()] = true; delete attendanceData[oldName]; }
-                    const newIdx = newMembers.indexOf(oldName);
-                    if (newIdx !== -1) newMembers[newIdx] = newName.trim();
-                    
+                    if (attendanceData[oldName]) {
+                        attendanceData[newName.trim()] = true;
+                        delete attendanceData[oldName];
+                    }
+                    const nIdx = newMembers.indexOf(oldName);
+                    if (nIdx !== -1) newMembers[nIdx] = newName.trim();
                     saveData(); render();
                 }
             }
@@ -141,7 +141,7 @@
 
         function removeMember(name, event) {
             event.stopPropagation();
-            if(confirm(`'${name}' 식구님을 명단에서 삭제할까요?`)) {
+            if(confirm(`'${name}' 식구님을 명단에서 영구 삭제하시겠습니까?`)) {
                 familyMembers = familyMembers.filter(m => m !== name);
                 newMembers = newMembers.filter(m => m !== name);
                 delete attendanceData[name];
@@ -153,9 +153,9 @@
             const listDiv = document.getElementById('member-list');
             const newMListDiv = document.getElementById('new-members-list');
             listDiv.innerHTML = '';
-            newMListDiv.innerHTML = newMembers.length > 0 ? '' : '<span class="text-slate-400">새로 등록된 식구가 없습니다.</span>';
-
-            // 새식구 관리자 페이지 표시
+            
+            // 새식구 현황판 업데이트
+            newMListDiv.innerHTML = newMembers.length > 0 ? '' : '<span class="text-slate-400">새로 추가된 식구가 없습니다.</span>';
             newMembers.forEach(m => {
                 const span = document.createElement('span');
                 span.className = "bg-red-50 text-red-600 px-3 py-1 rounded-full border border-red-100 font-bold";
@@ -164,6 +164,7 @@
             });
 
             let count = 0;
+            // 가나다순 정렬 및 중복 제거
             [...new Set(familyMembers)].sort().forEach(name => {
                 const isPresent = attendanceData[name];
                 const isNew = newMembers.includes(name);
@@ -175,17 +176,18 @@
                     : name;
 
                 const card = document.createElement('div');
-                card.className = `member-card cursor-pointer rounded-3xl p-4 text-center font-black relative border-2 ${isPresent ? 'present' : 'border-white text-slate-300'}`;
+                card.className = `member-card cursor-pointer rounded-3xl p-4 text-center font-black relative border-2 ${isPresent ? 'present border-amber-500' : 'border-white text-slate-300 hover:border-amber-100'}`;
                 
                 card.innerHTML = `
                     ${isNew ? '<span class="new-badge">NEW</span>' : ''}
                     ${isAdmin ? `
                         <div class="absolute top-2 right-2 flex gap-1 z-10">
-                            <button onclick="editMember('${name}', event)" class="w-7 h-7 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center text-[10px]"><i class="fas fa-pen"></i></button>
-                            <button onclick="removeMember('${name}', event)" class="w-7 h-7 bg-red-100 text-red-500 rounded-full flex items-center justify-center text-[10px]"><i class="fas fa-trash"></i></button>
+                            <button onclick="editMember('${name}', event)" class="w-7 h-7 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center text-[10px] hover:bg-amber-200 transition-colors"><i class="fas fa-pen"></i></button>
+                            <button onclick="removeMember('${name}', event)" class="w-7 h-7 bg-red-100 text-red-500 rounded-full flex items-center justify-center text-[10px] hover:bg-red-200 transition-colors"><i class="fas fa-trash"></i></button>
                         </div>
                     ` : ''}
-                    <div class="${nameParts.length > 1 ? 'text-lg' : 'text-xl'}">${nameHtml}</div>
+                    <div class="${nameParts.length > 1 ? 'text-lg leading-tight' : 'text-xl'}">${nameHtml}</div>
+                    ${isPresent ? '<div class="mt-1 text-amber-600 text-[10px] font-bold"><i class="fas fa-heart"></i> 정성 완료</div>' : ''}
                 `;
                 card.onclick = () => handleAttendance(name);
                 listDiv.appendChild(card);
@@ -195,20 +197,31 @@
 
         function toggleAdminView() {
             if(!isAdmin) {
-                if(prompt("관리자 암호:") === ADMIN_PW) { isAdmin = true; document.getElementById('admin-panel').classList.remove('hidden'); }
-            } else { isAdmin = false; document.getElementById('admin-panel').classList.add('hidden'); }
+                if(prompt("관리자 암호:") === ADMIN_PW) {
+                    isAdmin = true;
+                    document.getElementById('admin-panel').classList.remove('hidden');
+                }
+            } else {
+                isAdmin = false;
+                document.getElementById('admin-panel').classList.add('hidden');
+            }
             render();
         }
 
         function resetData() {
-            if(confirm("모든 이름 변경과 새식구 기록을 초기화하고 처음으로 되돌릴까요?")) {
+            if(confirm("모든 데이터(이름 수정, 새식구, 출석 기록)를 삭제하고 초기 명단으로 되돌릴까요?")) {
                 localStorage.clear();
                 location.reload();
             }
         }
 
-        function updateClock() { document.getElementById('live-clock').innerText = new Date().toLocaleTimeString('ko-KR', { hour12: false }); }
-        function runConfetti() { confetti({ particleCount: 100, spread: 70, origin: { y: 0.8 } }); }
+        function updateClock() {
+            document.getElementById('live-clock').innerText = new Date().toLocaleTimeString('ko-KR', { hour12: false });
+        }
+
+        function runConfetti() {
+            confetti({ particleCount: 100, spread: 70, origin: { y: 0.8 }, colors: ['#f59e0b', '#2d5a27', '#ffffff'] });
+        }
 
         init();
     </script>
